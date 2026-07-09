@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { igdl, ttdl, fbdown, twitter, youtube, capcut, gdrive, spotify, soundcloud, threads } from 'btch-downloader';
 import dotenv from 'dotenv';
 
@@ -7,8 +7,6 @@ dotenv.config();
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
   ]
 });
 
@@ -38,55 +36,106 @@ function extractUrl(text) {
   return match ? match[0] : null;
 }
 
-client.on('messageCreate', async (message) => {
-  if (message.author.bot) return;
-  if (!message.mentions.has(client.user)) return;
+function extractLinks(result) {
+  const links = [];
+  if (typeof result === 'string') {
+    links.push(result);
+  } else if (typeof result === 'object') {
+    const seen = new Set();
+    const add = (url) => { if (url && !seen.has(url)) { seen.add(url); links.push(url); } };
+    if (result.mp4) add(result.mp4);
+    if (result.video) add(result.video);
+    if (result.mp3) add(result.mp3);
+    if (result.url) add(result.url);
+    if (result.data?.url) add(result.data.url);
+    if (Array.isArray(result)) result.forEach(r => { if (r.url) add(r.url); if (r.video) add(r.video); });
+    if (Array.isArray(result.result)) result.result.forEach(r => { if (r.url) add(r.url); if (r.video) add(r.video); });
+  }
+  return links;
+}
 
-  const url = extractUrl(message.content);
-  if (!url) return;
+async function handleDownload(interaction) {
+  const url = extractUrl(interaction.options.getString('url'));
+  if (!url) {
+    return interaction.editReply('⚠️ URL tidak valid.');
+  }
 
   const platform = detectPlatform(url);
-  if (!platform) return;
+  if (!platform) {
+    return interaction.editReply('⚠️ Platform tidak didukung atau URL tidak dikenal.');
+  }
 
-  const reply = await message.reply(`🔍 Mendeteksi ${platform.name}...`);
+  await interaction.editReply(`🔍 Mendeteksi **${platform.name}**...`);
 
   try {
     const result = await platform.fn(url);
+    const links = extractLinks(result);
 
-    let downloadUrl = null;
-    if (typeof result === 'object') {
-      if (result.mp4) downloadUrl = result.mp4;
-      else if (result.video) downloadUrl = result.video;
-      else if (result.mp3) downloadUrl = result.mp3;
-      else if (result.url) downloadUrl = result.url;
-      else if (result.data?.url) downloadUrl = result.data.url;
-      else if (Array.isArray(result) && result.length > 0) {
-        downloadUrl = result[0].url || result[0].video || result[0];
+    if (links.length > 0) {
+      const embed = new EmbedBuilder()
+        .setTitle(result.title || platform.name)
+        .setColor(0x5865F2);
+
+      if (result.author) embed.setAuthor({ name: result.author });
+
+      const desc = links.map((link, i) => {
+        const label = links.length > 1 ? `Download ${i + 1}` : `Download Video`;
+        return `[${label}](${link})`;
+      }).join(' | ');
+      embed.setDescription(desc);
+
+      if (result.mp3 && !links.includes(result.mp3)) {
+        embed.addFields({ name: '🎵 Audio', value: `[Download MP3](${result.mp3})` });
       }
-    } else if (typeof result === 'string') {
-      downloadUrl = result;
-    }
 
-    if (downloadUrl) {
-      const title = result.title || '';
-      const author = result.author || '';
-      let msg = `## 🎬 **${platform.name}**\n`;
-      if (title) msg += `**${title}**\n`;
-      if (author) msg += `👤 ${author}\n`;
-      msg += `━━━━━━━━━━━━━━━\n🔗 **[Download Video](${downloadUrl})**`;
-      if (result.mp3) msg += ` | 🎵 **[Download MP3](${result.mp3})**`;
-
-      await reply.edit(msg);
+      await interaction.editReply({ embeds: [embed] });
     } else {
-      await reply.edit(`⚠️ Gagal mendapatkan link download. Response:\n\`\`\`json\n${JSON.stringify(result, null, 2).slice(0, 500)}\n\`\`\``);
+      await interaction.editReply(`⚠️ Gagal mendapatkan link download. Response:\n\`\`\`json\n${JSON.stringify(result, null, 2).slice(0, 500)}\n\`\`\``);
     }
   } catch (err) {
-    await reply.edit(`❌ Gagal mendownload: ${err.message}`);
+    await interaction.editReply(`❌ Gagal mendownload: ${err.message}`);
+  }
+}
+
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+  if (interaction.commandName !== 'download') return;
+
+  await interaction.deferReply();
+  await handleDownload(interaction);
+});
+
+const commandData = new SlashCommandBuilder()
+  .setName('download')
+  .setDescription('Download video/audio dari link sosial media')
+  .addStringOption(option =>
+    option.setName('url')
+      .setDescription('Link TikTok, Instagram, YouTube, dll')
+      .setRequired(true)
+  ).toJSON();
+
+async function registerCommands(guildId) {
+  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+  try {
+    await rest.put(
+      Routes.applicationGuildCommands(client.user.id, guildId),
+      { body: [commandData] }
+    );
+    console.log(`✅ Command /download terdaftar di guild ${guildId}`);
+  } catch (err) {
+    console.error(`❌ Gagal daftarin command di guild ${guildId}: ${err.message}`);
+  }
+}
+
+client.once('ready', async () => {
+  console.log(`✅ Bot ${client.user.tag} sudah online!`);
+  for (const guild of client.guilds.cache.values()) {
+    await registerCommands(guild.id);
   }
 });
 
-client.once('ready', () => {
-  console.log(`✅ Bot ${client.user.tag} sudah online!`);
+client.on('guildCreate', async (guild) => {
+  await registerCommands(guild.id);
 });
 
 client.login(process.env.DISCORD_TOKEN);

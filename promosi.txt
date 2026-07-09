@@ -1,0 +1,21 @@
+━━━━━━━━━━━━━━━━━━━━
+📥 DISCORD MEDIA DOWNLOADER BOT
+━━━━━━━━━━━━━━━━━━━━
+
+Download video/audio dari berbagai platform sosial media langsung dari Discord! Gak perlu ribet buka website atau app lain.
+
+✅ Support:
+TikTok | Instagram | YouTube | Facebook | Twitter/X | CapCut | Google Drive | Spotify | SoundCloud | Threads | dan lainnya...
+
+🎯 Cara pakai:
+Cukup ketik perintah:
+/download url:https://tiktok.com/...
+
+Bot akan otomatis memberikan link download video/audio!
+
+🔥 GRATIS! Tinggal invite ke server kamu.
+
+🔗 Invite Bot:
+[ISI LINK INVITE DISINI]
+
+━━━━━━━━━━━━━━━━━━━━
