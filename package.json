@@ -1,0 +1,15 @@
+{
+  "name": "discord-media-bot",
+  "version": "1.0.0",
+  "description": "Discord bot untuk download video dari berbagai platform",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "btch-downloader": "^6.0.37",
+    "dotenv": "^16.4.7"
+  }
+}
