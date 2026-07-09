@@ -1,13 +1,14 @@
 # Discord Media Downloader Bot
 
-Bot Discord untuk mendownload video/audio dari berbagai platform sosial media cukup dengan men-tag bot dan melampirkan link.
+Bot Discord untuk mendownload video/audio dari berbagai platform sosial media menggunakan slash command `/download`.
 
 ## Fitur
 
-- Support download dari **TikTok, Instagram, YouTube, Facebook, Twitter/X, CapCut, Google Drive, Spotify, SoundCloud, Threads, dan lainnya**
+- Support **TikTok, Instagram, YouTube, Facebook, Twitter/X, CapCut, Google Drive, Spotify, SoundCloud, Threads**, dan lainnya
 - Auto-detect platform dari URL
-- Hasil download ditampilkan dalam format link yang rapi
-- Hanya merespon ketika di-tag (tidak spam)
+- Hasil ditampilkan dalam **Embed** yang rapi
+- Command `/download` — tinggal ketik, gak perlu tag bot
+- Command langsung aktif di server baru (gak perlu nunggu 1 jam)
 
 ## Platform yang Didukung
 
@@ -61,27 +62,29 @@ Ganti `isi_token_disini` dengan token bot dari Discord Developer Portal.
 npm start
 ```
 
-Bot akan online dan siap digunakan.
+Bot akan online dan command `/download` langsung terdaftar di server.
 
 ## Cara Pakai
 
-Di channel Discord, tag bot lalu kirim link yang ingin di-download:
+Di channel Discord, ketik slash command:
 
 ```
-@MediaBot https://www.tiktok.com/@user/video/7025456384175017243
+/download url:https://www.tiktok.com/@user/video/7025456384175017243
 ```
 
-Bot akan merespon otomatis dengan link download.
+Bot akan otomatis menampilkan link download dalam bentuk Embed.
 
-## Cara Mendapatkan Token Bot
+## Cara Mendapatkan Token & Invite Bot
 
 1. Buka https://discord.com/developers/applications
 2. Klik **New Application** → beri nama → **Create**
-3. ke tab **Bot** → **Add Bot** → **Reset Token** → copy token
+3. Tab **Bot** → **Add Bot** → **Reset Token** → copy token
 4. Tab **OAuth2 > URL Generator**:
-   - Scope: `bot`
+   - Scope: `bot` + `applications.commands`
    - Permissions: `Send Messages`, `Read Message History`, `Attach Files`
-5. Buka URL yang di-generate, pilih server tempat bot akan di-invite
+5. Buka URL yang di-generate, pilih server
+
+> **Catatan**: Scope `applications.commands` wajib agar slash command `/download` bisa muncul.
 
 ## Deploy ke VPS (Production)
 
