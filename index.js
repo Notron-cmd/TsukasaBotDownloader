@@ -54,6 +54,12 @@ function extractLinks(result) {
   return links;
 }
 
+function getMediaType(url) {
+  const ext = url.split('?')[0].toLowerCase();
+  if (ext.endsWith('.mp4') || ext.endsWith('.mov') || ext.endsWith('.webm')) return 'video';
+  return 'image';
+}
+
 async function handleDownload(interaction) {
   const url = extractUrl(interaction.options.getString('url'));
   if (!url) {
@@ -70,6 +76,58 @@ async function handleDownload(interaction) {
   try {
     const result = await platform.fn(url);
     const links = extractLinks(result);
+
+    if (platform.name === 'Instagram' && links.length > 0) {
+      await interaction.editReply(`📥 Mengunduh ${links.length} media dari Instagram...`);
+
+      const attachments = [];
+      const oversized = [];
+
+      for (let i = 0; i < links.length; i++) {
+        const link = links[i];
+        try {
+          const res = await fetch(link);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const buffer = Buffer.from(await res.arrayBuffer());
+          const sizeMB = buffer.length / (1024 * 1024);
+
+          if (sizeMB > 25) {
+            oversized.push(link);
+            continue;
+          }
+
+          const type = getMediaType(link);
+          const ext = type === 'video' ? 'mp4' : 'jpg';
+          attachments.push({ attachment: buffer, name: `instagram_${i + 1}.${ext}` });
+        } catch {
+          oversized.push(link);
+        }
+      }
+
+      if (attachments.length === 0 && oversized.length === 0) {
+        return interaction.editReply('⚠️ Gagal mengunduh media dari Instagram.');
+      }
+
+      const oversizeText = oversized.length > 0
+        ? `⚠️ ${oversized.length} file terlalu besar/gagal:\n${oversized.join('\n')}`
+        : '';
+
+      if (attachments.length > 0) {
+        const batch1 = attachments.slice(0, 10);
+        await interaction.editReply({
+          content: oversizeText,
+          files: batch1
+        });
+
+        for (let i = 10; i < attachments.length; i += 10) {
+          const batch = attachments.slice(i, i + 10);
+          await interaction.followUp({ files: batch });
+        }
+      } else {
+        await interaction.editReply(oversizeText);
+      }
+      return;
+    }
 
     if (links.length > 0) {
       const embed = new EmbedBuilder()
